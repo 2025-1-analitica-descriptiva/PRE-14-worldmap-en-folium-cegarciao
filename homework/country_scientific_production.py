@@ -1,6 +1,4 @@
-
 import os
-
 import folium  # type: ignore
 import pandas as pd  # type: ignore
 from pprint import pprint
@@ -46,6 +44,47 @@ def add_countries_column(affiliations):
     return affiliations
 
 
+def clean_countries(affiliations):
+
+    affiliations = affiliations.copy()
+    affiliations["countries"] = affiliations["countries"].str.replace(
+        "United States", "United States of America"
+    )
+    return affiliations
+
+
+def count_country_frequency(affiliations):
+    """Cuenta la frecuencia de cada país en la columna 'countries'"""
+
+    countries = affiliations["countries"].copy()
+    countries = countries.str.split(", ")
+    countries = countries.explode()
+    countries = countries.value_counts()
+    return countries
+
+def plot_world_map(countries):
+    """Grafica un mapa mundial con la frecuencia de cada país."""
+
+    countries = countries.copy()
+    countries = countries.to_frame()
+    countries = countries.reset_index()
+
+    m = folium.Map(location=[0, 0], zoom_start=2)
+
+    folium.Choropleth(
+        geo_data=(
+            "https://raw.githubusercontent.com/python-visualization/"
+            "folium/master/examples/data/world-countries.json"
+        ),
+        data=countries,
+        columns=["countries", "count"],
+        key_on="feature.properties.name",
+        fill_color="Greens",
+    ).add_to(m)
+
+    m.save("files/map.html")
+
+
 def make_worldmap():
     """Función principal"""
 
@@ -56,11 +95,10 @@ def make_worldmap():
     affiliations = load_affiliations()
     affiliations = remove_na_rows(affiliations)
     affiliations = add_countries_column(affiliations)
-    print()
-    print()
-    print(affiliations.head().to_string())
-    print()
-    print()
+    affiliations = clean_countries(affiliations)
+    countries = count_country_frequency(affiliations)
+    countries.to_csv("files/countries.csv")
+    plot_world_map(countries) 
 
 
 
